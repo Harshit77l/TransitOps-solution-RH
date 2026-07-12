@@ -1,0 +1,13 @@
+# python / django
+__pycache__/
+*.pyc
+db.sqlite3
+.env
+venv/
+*.egg-info/
+
+# next.js
+node_modules/
+.next/
+out/
+.env*.local
