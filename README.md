@@ -124,8 +124,3 @@ transitops/
     ├── components/        # Layout, StatusBadge, ui helpers
     └── lib/               # api client, auth context
 ```
-
-## Switching to PostgreSQL (optional, for deploy)
-
-In `backend/config/settings.py` replace the `DATABASES` block with a Postgres config
-and `pip install psycopg2-binary`. No model changes required.
