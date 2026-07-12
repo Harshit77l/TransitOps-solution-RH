@@ -6,12 +6,15 @@ import api from "./api";
 
 const AuthContext = createContext(null);
 
-// Which nav sections each role may see (mirrors backend RBAC + mockup screen 8).
+// Which nav sections each role sees. Everyone can READ everything server-side,
+// but the nav is scoped to each role's primary workflow to reduce clutter.
+// Dashboard / Analytics / Settings are shown to all; each role additionally
+// gets the sections it owns (writes) plus closely related read views.
 export const ROLE_ACCESS = {
   FLEET_MANAGER: ["dashboard", "vehicles", "drivers", "trips", "maintenance", "fuel", "analytics", "settings"],
-  DISPATCHER: ["dashboard", "vehicles", "drivers", "trips", "maintenance", "fuel", "analytics", "settings"],
-  SAFETY_OFFICER: ["dashboard", "vehicles", "drivers", "trips", "maintenance", "fuel", "analytics", "settings"],
-  FINANCIAL_ANALYST: ["dashboard", "vehicles", "drivers", "trips", "maintenance", "fuel", "analytics", "settings"],
+  DISPATCHER: ["dashboard", "vehicles", "drivers", "trips", "analytics", "settings"],
+  SAFETY_OFFICER: ["dashboard", "drivers", "vehicles", "trips", "analytics", "settings"],
+  FINANCIAL_ANALYST: ["dashboard", "fuel", "maintenance", "vehicles", "analytics", "settings"],
 };
 
 export function AuthProvider({ children }) {
