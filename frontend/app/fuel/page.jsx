@@ -37,7 +37,7 @@ export default function FuelPage() {
         </div>
       </div>
 
-      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-5">
         <h2 className="mb-3 text-sm font-semibold">Fuel Logs</h2>
         <table className="w-full text-sm">
           <thead className="text-left text-[11px] uppercase tracking-wide text-gray-400">
@@ -45,7 +45,7 @@ export default function FuelPage() {
           </thead>
           <tbody>
             {fuelLogs.map((f) => (
-              <tr key={f.id} className="border-t border-gray-100">
+              <tr key={f.id} className="border-t border-gray-100 dark:border-gray-800">
                 <td className="py-2">{f.vehicle_reg}</td><td>{new Date(f.date).toLocaleDateString()}</td>
                 <td>{f.liters} L</td><td>{f.cost.toLocaleString()}</td>
               </tr>
@@ -55,7 +55,7 @@ export default function FuelPage() {
         </table>
       </div>
 
-      <div className="mb-6 rounded-lg border border-gray-200 bg-white p-5">
+      <div className="mb-6 rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-5">
         <h2 className="mb-3 text-sm font-semibold">Other Expenses (Toll / Misc)</h2>
         <table className="w-full text-sm">
           <thead className="text-left text-[11px] uppercase tracking-wide text-gray-400">
@@ -63,7 +63,7 @@ export default function FuelPage() {
           </thead>
           <tbody>
             {expenses.map((e) => (
-              <tr key={e.id} className="border-t border-gray-100">
+              <tr key={e.id} className="border-t border-gray-100 dark:border-gray-800">
                 <td className="py-2">{e.type}</td><td>{e.amount.toLocaleString()}</td>
                 <td>{new Date(e.date).toLocaleDateString()}</td>
               </tr>
@@ -73,8 +73,8 @@ export default function FuelPage() {
         </table>
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border-2 border-brand/30 bg-brand/5 px-5 py-3">
-        <span className="text-sm font-medium text-gray-600">Total Operational Cost (auto) = Fuel + Maintenance + Expenses</span>
+      <div className="flex items-center justify-between rounded-lg border-2 border-brand/30 bg-brand/5 px-5 py-3 dark:border-brand/40 dark:bg-brand/10">
+        <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Operational Cost (auto) = Fuel + Maintenance + Expenses</span>
         <span className="text-xl font-bold text-brand-dark">{opCost.toLocaleString()}</span>
       </div>
 
@@ -87,7 +87,7 @@ export default function FuelPage() {
             </Select>
             <Field label="Liters" type="number" value={fuel.liters} onChange={(e) => setFuel({ ...fuel, liters: e.target.value })} />
             <Field label="Cost" type="number" value={fuel.cost} onChange={(e) => setFuel({ ...fuel, cost: e.target.value })} />
-            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
+            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
             <Btn disabled={!fuel.vehicle} onClick={() => addFuel.mutate({ vehicle: Number(fuel.vehicle), liters: Number(fuel.liters), cost: Number(fuel.cost) })}>Save</Btn>
           </div>
         </Modal>
@@ -99,7 +99,7 @@ export default function FuelPage() {
               <option value="TOLL">Toll</option><option value="MISC">Misc</option><option value="MAINTENANCE">Maintenance</option>
             </Select>
             <Field label="Amount" type="number" value={exp.amount} onChange={(e) => setExp({ ...exp, amount: e.target.value })} />
-            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
+            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
             <Btn disabled={!exp.amount} onClick={() => addExp.mutate({ type: exp.type, amount: Number(exp.amount) })}>Save</Btn>
           </div>
         </Modal>

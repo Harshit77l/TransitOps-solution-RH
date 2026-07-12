@@ -14,7 +14,7 @@ function Bar({ label, value, total, color }) {
         <span>{label}</span>
         <span>{value}</span>
       </div>
-      <div className="h-2 rounded bg-gray-100">
+      <div className="h-2 rounded bg-gray-200 dark:bg-gray-700">
         <div className={`h-2 rounded ${color}`} style={{ width: `${pct}%` }} />
       </div>
     </div>
@@ -45,7 +45,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-            <div className="rounded-lg border border-gray-200 bg-white p-4 lg:col-span-2">
+            <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-4 lg:col-span-2">
               <h2 className="mb-3 text-sm font-semibold">Recent Trips</h2>
               <table className="w-full text-sm">
                 <thead>
@@ -58,7 +58,7 @@ export default function DashboardPage() {
                 </thead>
                 <tbody>
                   {data.recentTrips.map((t) => (
-                    <tr key={t.id} className="border-t border-gray-100">
+                    <tr key={t.id} className="border-t border-gray-100 dark:border-gray-800">
                       <td className="py-2">TRIP-{t.id}</td>
                       <td>{t.vehicle_reg}</td>
                       <td>{t.driver_name}</td>
@@ -72,7 +72,7 @@ export default function DashboardPage() {
               </table>
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white p-4">
+            <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-4">
               <h2 className="mb-3 text-sm font-semibold">Vehicle Status</h2>
               {(() => {
                 const b = data.vehicleStatusBreakdown;
