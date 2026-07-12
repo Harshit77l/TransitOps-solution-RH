@@ -2,14 +2,15 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { Truck, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { apiError } from "@/lib/api";
 
-const DEMO = [
-  { role: "Fleet Manager", email: "manager@transitops.in" },
-  { role: "Dispatcher", email: "dispatch@transitops.in" },
-  { role: "Safety Officer", email: "safety@transitops.in" },
-  { role: "Financial Analyst", email: "finance@transitops.in" },
+const DEMO_ROLES = [
+  { label: "Fleet Manager", email: "manager@transitops.in" },
+  { label: "Dispatcher", email: "dispatch@transitops.in" },
+  { label: "Safety Officer", email: "safety@transitops.in" },
+  { label: "Financial Analyst", email: "finance@transitops.in" },
 ];
 
 export default function LoginPage() {
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("dispatch@transitops.in");
   const [password, setPassword] = useState("password123");
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -35,82 +37,137 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      {/* Left brand panel */}
-      <div className="hidden w-2/5 flex-col justify-between bg-gray-900 p-10 text-white lg:flex">
-        <div>
-          <div className="mb-1 h-9 w-9 rounded bg-brand" />
-          <div className="text-2xl font-bold">TransitOps</div>
-          <div className="text-sm text-gray-400">Smart Transport Operations Platform</div>
+    <div className="flex min-h-screen bg-white dark:bg-gray-950">
+      {/* Brand panel */}
+      <div className="relative hidden overflow-hidden bg-gray-950 lg:flex lg:w-1/2 lg:flex-col lg:justify-between lg:p-14">
+        {/* soft accent glows */}
+        <div className="pointer-events-none absolute -right-24 -top-24 h-80 w-80 rounded-full bg-brand/20 blur-3xl" />
+        <div className="pointer-events-none absolute -bottom-32 -left-16 h-80 w-80 rounded-full bg-brand/10 blur-3xl" />
+
+        <div className="relative flex items-center gap-2.5 text-white">
+          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand">
+            <Truck size={18} className="text-white" />
+          </div>
+          <span className="text-lg font-semibold tracking-tight">TransitOps</span>
         </div>
-        <div className="text-sm text-gray-300">
-          <div className="mb-2 font-medium">One login, four roles:</div>
-          <ul className="space-y-1 text-gray-400">
-            <li>• Fleet Manager</li>
-            <li>• Dispatcher</li>
-            <li>• Safety Officer</li>
-            <li>• Financial Analyst</li>
-          </ul>
+
+        <div className="relative max-w-md">
+          <h2 className="text-3xl font-semibold leading-tight text-white">
+            Run your entire fleet from one place.
+          </h2>
+          <p className="mt-4 text-sm leading-relaxed text-gray-400">
+            Vehicles, drivers, dispatch, maintenance, and costs — with the business rules
+            enforced automatically, so nothing slips through.
+          </p>
         </div>
-        <div className="text-[10px] uppercase tracking-widest text-gray-600">TransitOps · 2026 · RBAC Enabled</div>
+
+        <div className="relative text-xs text-gray-600">
+          © 2026 TransitOps · Role-based access enabled
+        </div>
       </div>
 
-      {/* Right form */}
-      <div className="flex flex-1 items-center justify-center bg-gray-50 p-8 dark:bg-gray-950">
-        <form onSubmit={submit} className="w-full max-w-sm">
-          <h1 className="text-xl font-semibold">Sign in to your account</h1>
-          <p className="mb-6 text-sm text-gray-500 dark:text-gray-400">Enter your credentials to continue</p>
-
-          <label className="mb-3 block text-sm">
-            <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">Email</span>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-brand focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              required
-            />
-          </label>
-
-          <label className="mb-3 block text-sm">
-            <span className="mb-1 block text-[11px] uppercase tracking-wide text-gray-400">Password</span>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm focus:border-brand focus:outline-none dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100"
-              required
-            />
-          </label>
-
-          {error && (
-            <div className="mb-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
-              ✕ {error}
+      {/* Form panel */}
+      <div className="flex flex-1 items-center justify-center px-6 py-12">
+        <div className="w-full max-w-sm">
+          {/* logo (mobile only — brand panel is hidden below lg) */}
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand">
+              <Truck size={18} className="text-white" />
             </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="mb-4 w-full rounded-md bg-brand py-2.5 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50"
-          >
-            {loading ? "Signing in…" : "Sign In"}
-          </button>
-
-          <div className="rounded-md border border-gray-200 bg-white p-3 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
-            <div className="mb-1 font-medium text-gray-600">Demo accounts (password: password123)</div>
-            {DEMO.map((d) => (
-              <button
-                type="button"
-                key={d.email}
-                onClick={() => setEmail(d.email)}
-                className="block text-left hover:text-brand-dark"
-              >
-                {d.role} — {d.email}
-              </button>
-            ))}
+            <span className="text-lg font-semibold tracking-tight dark:text-white">TransitOps</span>
           </div>
-        </form>
+
+          <h1 className="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">
+            Welcome back
+          </h1>
+          <p className="mt-1.5 text-sm text-gray-500 dark:text-gray-400">
+            Sign in to your TransitOps account.
+          </p>
+
+          <form onSubmit={submit} className="mt-8 space-y-4">
+            <div>
+              <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Email
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@company.com"
+                className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 text-sm text-gray-900 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                required
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Password
+              </label>
+              <div className="relative">
+                <input
+                  id="password"
+                  type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3.5 py-2.5 pr-10 text-sm text-gray-900 outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPw((v) => !v)}
+                  aria-label={showPw ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition hover:text-gray-600 dark:hover:text-gray-200"
+                >
+                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-2.5 text-sm text-red-600 dark:border-red-900/50 dark:bg-red-950/40 dark:text-red-300">
+                {error}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark disabled:opacity-50"
+            >
+              {loading ? "Signing in…" : <>Sign in <ArrowRight size={16} /></>}
+            </button>
+          </form>
+
+          {/* Demo access — subtle role quick-select */}
+          {/* <div className="mt-8">
+            <div className="flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+              <span className="text-xs text-gray-400 dark:text-gray-500">Demo access</span>
+              <div className="h-px flex-1 bg-gray-200 dark:bg-gray-800" />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              {DEMO_ROLES.map((r) => {
+                const active = email === r.email;
+                return (
+                  <button
+                    key={r.email}
+                    type="button"
+                    onClick={() => { setEmail(r.email); setPassword("password123"); }}
+                    className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
+                      active
+                        ? "border-brand bg-brand/10 text-brand-dark dark:text-brand"
+                        : "border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-800 dark:text-gray-400 dark:hover:bg-gray-900"
+                    }`}
+                  >
+                    {r.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div> */}
+        </div>
       </div>
     </div>
   );
