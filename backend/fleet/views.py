@@ -118,6 +118,16 @@ class DriverViewSet(viewsets.ModelViewSet):
             "count": drivers.count(),
             "drivers": DriverSerializer(drivers, many=True).data,
         })
+    
+    @action(detail=True, methods=["post"])
+    def set_status(self, request, pk=None):
+        """Manually change a driver's status with an optional reason."""
+        driver = services.set_driver_status(
+            self.get_object(),
+            request.data.get("status"),
+            request.data.get("status_reason", ""),
+        )
+        return Response(DriverSerializer(driver).data)
 
 
 # ---------- Trips + transitions ----------

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, Pencil } from "lucide-react";
 import Layout from "@/components/Layout";
 import StatusBadge from "@/components/StatusBadge";
 import { Modal, Field, Select, Btn } from "@/components/ui";
@@ -20,6 +20,8 @@ export default function DriversPage() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(BLANK);
   const [error, setError] = useState("");
+  const [editing, setEditing] = useState(null); // driver whose status is being edited
+  const [editForm, setEditForm] = useState({ status: "", status_reason: "" });
 
   const { data = [], isLoading } = useQuery({
     queryKey: ["drivers", filters],
@@ -36,7 +38,26 @@ export default function DriversPage() {
 
   const create = useMutation({
     mutationFn: (body) => api.post("/drivers/", body),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ["drivers"] }); qc.invalidateQueries({ queryKey: ["drivers-expiring"] }); setOpen(false); setForm(BLANK); setError(""); },
+    onSuccess: () => { 
+      qc.invalidateQueries({ queryKey: ["drivers"] }); 
+      qc.invalidateQueries({ queryKey: ["drivers-expiring"] }); 
+      setOpen(false); 
+      setForm(BLANK); 
+      setError(""); 
+    },
+    onError: (e) => setError(apiError(e)),
+  });
+
+  const updateStatus = useMutation({
+    mutationFn: ({ id, status, status_reason }) =>
+      api.post(`/drivers/${id}/set_status/`, { status, status_reason }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["drivers"] });
+      qc.invalidateQueries({ queryKey: ["drivers-expiring"] });
+      qc.invalidateQueries({ queryKey: ["kpis"] });
+      setEditing(null);
+      setError("");
+    },
     onError: (e) => setError(apiError(e)),
   });
 
@@ -69,8 +90,10 @@ export default function DriversPage() {
       <div className="mb-4 flex gap-3">
         <select className="rounded-md border border-gray-200 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" value={filters.status} onChange={(e) => setFilters({ ...filters, status: e.target.value })}>
           <option value="">Status: All</option>
-          <option value="AVAILABLE">Available</option><option value="ON_TRIP">On Trip</option>
-          <option value="OFF_DUTY">Off Duty</option><option value="SUSPENDED">Suspended</option>
+          <option value="AVAILABLE">Available</option>
+          <option value="ON_TRIP">On Trip</option>
+          <option value="OFF_DUTY">Off Duty</option>
+          <option value="SUSPENDED">Suspended</option>
         </select>
         <input placeholder="Search name / license…" className="rounded-md border border-gray-200 px-3 py-1.5 text-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100" value={filters.search} onChange={(e) => setFilters({ ...filters, search: e.target.value })} />
       </div>
@@ -80,12 +103,12 @@ export default function DriversPage() {
           <thead className="bg-gray-50 text-left text-[11px] uppercase tracking-wide text-gray-400">
             <tr>
               <th className="px-4 py-2">Driver</th><th>License No.</th><th>Category</th>
-              <th>Expiry</th><th>Contact</th><th>Safety</th><th>Status</th>
+              <th>Expiry</th><th>Contact</th><th>Safety</th><th>Status</th><th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
-              <tr><td colSpan={7} className="px-4 py-6 text-center text-gray-400">Loading…</td></tr>
+              <tr><td colSpan={8} className="px-4 py-6 text-center text-gray-400">Loading…</td></tr>
             ) : data.map((d) => (
               <tr key={d.id} className="border-t border-gray-100 dark:border-gray-800">
                 <td className="px-4 py-2 font-medium">{d.name}</td>
@@ -94,7 +117,20 @@ export default function DriversPage() {
                   {d.license_expiry}{isExpired(d.license_expiry) && " · EXPIRED"}
                 </td>
                 <td>{d.contact}</td><td>{d.safety_score}%</td>
-                <td><StatusBadge status={d.status} /></td>
+                <td>
+                  <StatusBadge status={d.status} />
+                  {d.status_reason && (
+                    <div className="mt-0.5 text-[11px] text-gray-400 dark:text-gray-500">{d.status_reason}</div>
+                  )}
+                </td>
+                <td>
+                  <button
+                    onClick={() => { setError(""); setEditForm({ status: d.status, status_reason: d.status_reason || "" }); setEditing(d); }}
+                    className="flex items-center gap-1 text-xs font-medium text-brand-dark hover:underline dark:text-brand"
+                  >
+                    <Pencil size={13} /> Edit
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -118,6 +154,33 @@ export default function DriversPage() {
           <div className="mt-4 flex justify-end gap-2">
             <Btn variant="ghost" onClick={() => setOpen(false)}>Cancel</Btn>
             <Btn onClick={() => create.mutate({ ...form, safety_score: Number(form.safety_score) })} disabled={create.isPending}>Save</Btn>
+          </div>
+        </Modal>
+      )}
+
+      {editing && (
+        <Modal title={`Update Status — ${editing.name}`} onClose={() => setEditing(null)}>
+          <div className="space-y-3">
+            <Select label="Status" value={editForm.status} onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}>
+              <option value="AVAILABLE">Available</option>
+              <option value="OFF_DUTY">Off Duty</option>
+              <option value="SUSPENDED">Suspended</option>
+            </Select>
+            <Field
+              label="Reason (e.g. left the organization, on leave)"
+              value={editForm.status_reason}
+              onChange={(e) => setEditForm({ ...editForm, status_reason: e.target.value })}
+            />
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              A driver who is currently On Trip can't be changed here — complete or cancel their trip first.
+            </p>
+            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
+            <div className="flex justify-end gap-2">
+              <Btn variant="ghost" onClick={() => setEditing(null)}>Cancel</Btn>
+              <Btn disabled={updateStatus.isPending} onClick={() => updateStatus.mutate({ id: editing.id, ...editForm })}>
+                {updateStatus.isPending ? "Saving…" : "Save"}
+              </Btn>
+            </div>
           </div>
         </Modal>
       )}

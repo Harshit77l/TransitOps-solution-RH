@@ -135,3 +135,24 @@ def close_maintenance(log: MaintenanceLog) -> MaintenanceLog:
             v.status = Vehicle.Status.AVAILABLE
             v.save()
     return log
+
+def set_driver_status(driver: Driver, new_status: str, reason: str = "") -> Driver:
+    """Manually change a driver's status (e.g. left the org, suspended) with a reason.
+
+    Guards the trip lifecycle: a driver who is currently ON_TRIP is tied to an active
+    trip, so their status can only change by completing/cancelling that trip — not here.
+    Likewise ON_TRIP is only ever set automatically at dispatch, never manually.
+    """
+    if new_status not in Driver.Status.values:
+        raise ValidationError("Invalid driver status.")
+    if driver.status == Driver.Status.ON_TRIP and new_status != Driver.Status.ON_TRIP:
+        raise ValidationError(
+            "Driver is currently On Trip — complete or cancel the trip before changing status."
+        )
+    if new_status == Driver.Status.ON_TRIP and driver.status != Driver.Status.ON_TRIP:
+        raise ValidationError("On Trip is set automatically when a trip is dispatched.")
+    with transaction.atomic():
+        driver.status = new_status
+        driver.status_reason = reason or ""
+        driver.save()
+    return driver

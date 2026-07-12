@@ -78,6 +78,8 @@ class Driver(models.Model):
     contact = models.CharField(max_length=32)
     safety_score = models.IntegerField(default=100)
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.AVAILABLE)
+    # status = models.CharField(max_length=16, choices=Status.choices, default=Status.AVAILABLE)
+    status_reason = models.CharField(max_length=255, blank=True, default="")
 
     def __str__(self):
         return f"{self.name} ({self.license_no})"
