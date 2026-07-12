@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/Layout";
 import StatusBadge from "@/components/StatusBadge";
-import { Field, Select, Btn } from "@/components/ui";
+import { Modal, Field, Select, Btn } from "@/components/ui";
 import api, { apiError } from "@/lib/api";
 
 const LIFECYCLE = ["DRAFT", "DISPATCHED", "COMPLETED", "CANCELLED"];
@@ -14,6 +14,8 @@ export default function TripsPage() {
   const qc = useQueryClient();
   const [form, setForm] = useState(BLANK);
   const [error, setError] = useState("");
+  const [completing, setCompleting] = useState(null); // trip being completed
+  const [completeForm, setCompleteForm] = useState({ end_odometer: "", fuel_consumed: "" });
 
   const { data: options } = useQuery({
     queryKey: ["dispatch-options"],
@@ -45,14 +47,10 @@ export default function TripsPage() {
   });
 
   const complete = useMutation({
-    mutationFn: (id) => {
-      const km = prompt("Final odometer reading?");
-      const fuel = prompt("Fuel consumed (liters)?");
-      if (km == null || fuel == null) throw new Error("cancelled");
-      return api.post(`/trips/${id}/complete/`, { end_odometer: Number(km), fuel_consumed: Number(fuel) });
-    },
-    onSuccess: refresh,
-    onError: (e) => e.message !== "cancelled" && alert(apiError(e)),
+    mutationFn: ({ id, end_odometer, fuel_consumed }) =>
+      api.post(`/trips/${id}/complete/`, { end_odometer: Number(end_odometer), fuel_consumed: Number(fuel_consumed) }),
+    onSuccess: () => { refresh(); setCompleting(null); setCompleteForm({ end_odometer: "", fuel_consumed: "" }); setError(""); },
+    onError: (e) => setError(apiError(e)),
   });
 
   const cancel = useMutation({
@@ -78,7 +76,7 @@ export default function TripsPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Create trip */}
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-5">
           <h2 className="mb-4 text-sm font-semibold">Create Trip</h2>
           <div className="space-y-3">
             <Field label="Source" value={form.source} onChange={(e) => setForm({ ...form, source: e.target.value })} />
@@ -108,7 +106,7 @@ export default function TripsPage() {
               </div>
             )}
 
-            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600">{error}</div>}
+            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
 
             <div className="flex gap-2">
               <Btn
@@ -129,7 +127,7 @@ export default function TripsPage() {
         </div>
 
         {/* Live board */}
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-5">
           <h2 className="mb-4 text-sm font-semibold">Live Board</h2>
           <div className="space-y-3">
             {activeTrips.length === 0 && <div className="text-sm text-gray-400">No active trips.</div>}
@@ -142,7 +140,7 @@ export default function TripsPage() {
                 <div className="mt-1 text-xs text-gray-500">{t.vehicle_reg} / {t.driver_name} · {t.cargo_weight_kg} kg</div>
                 <div className="mt-2 flex gap-2">
                   {t.status === "DISPATCHED" && (
-                    <button className="text-xs font-medium text-green-600 hover:underline" onClick={() => complete.mutate(t.id)}>Complete</button>
+                    <button className="text-xs font-medium text-green-600 hover:underline" onClick={() => { setError(""); setCompleteForm({ end_odometer: t.start_odometer ?? "", fuel_consumed: "" }); setCompleting(t); }}>Complete</button>
                   )}
                   <button className="text-xs font-medium text-red-500 hover:underline" onClick={() => cancel.mutate(t.id)}>Cancel</button>
                 </div>
@@ -152,6 +150,39 @@ export default function TripsPage() {
           <p className="mt-4 text-xs text-gray-400">On Complete: odometer → fuel log → expenses → Vehicle &amp; Driver return to Available.</p>
         </div>
       </div>
+
+      {completing && (
+        <Modal title={`Complete Trip — ${completing.source} → ${completing.destination}`} onClose={() => setCompleting(null)}>
+          <div className="space-y-3">
+            <p className="text-xs text-gray-400 dark:text-gray-500">
+              {completing.vehicle_reg} / {completing.driver_name}
+              {completing.start_odometer != null && ` · start odometer ${completing.start_odometer.toLocaleString()}`}
+            </p>
+            <Field
+              label="Final Odometer"
+              type="number"
+              value={completeForm.end_odometer}
+              onChange={(e) => setCompleteForm({ ...completeForm, end_odometer: e.target.value })}
+            />
+            <Field
+              label="Fuel Consumed (liters)"
+              type="number"
+              value={completeForm.fuel_consumed}
+              onChange={(e) => setCompleteForm({ ...completeForm, fuel_consumed: e.target.value })}
+            />
+            {error && <div className="rounded-md bg-red-50 px-3 py-2 text-sm text-red-600 dark:bg-red-950/40 dark:text-red-300">{error}</div>}
+            <div className="flex justify-end gap-2">
+              <Btn variant="ghost" onClick={() => setCompleting(null)}>Cancel</Btn>
+              <Btn
+                disabled={completeForm.end_odometer === "" || completeForm.fuel_consumed === "" || complete.isPending}
+                onClick={() => complete.mutate({ id: completing.id, ...completeForm })}
+              >
+                {complete.isPending ? "Completing…" : "Complete Trip"}
+              </Btn>
+            </div>
+          </div>
+        </Modal>
+      )}
     </Layout>
   );
 }

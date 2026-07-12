@@ -20,7 +20,7 @@ export default function SettingsPage() {
     <Layout>
       <h1 className="mb-4 text-xl font-semibold">Settings & RBAC</h1>
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-5">
           <h2 className="mb-4 text-sm font-semibold">General</h2>
           <div className="space-y-3">
             <Field label="Depot Name" defaultValue="Gandhinagar Depot 04" />
@@ -30,7 +30,7 @@ export default function SettingsPage() {
           </div>
         </div>
 
-        <div className="rounded-lg border border-gray-200 bg-white p-5">
+        <div className="rounded-lg border border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900 p-5">
           <h2 className="mb-4 text-sm font-semibold">Role-Based Access (RBAC)</h2>
           <table className="w-full text-xs">
             <thead className="text-[10px] uppercase tracking-wide text-gray-400">
@@ -42,7 +42,7 @@ export default function SettingsPage() {
             </thead>
             <tbody>
               {MATRIX.map((r) => (
-                <tr key={r.role} className="border-t border-gray-100">
+                <tr key={r.role} className="border-t border-gray-100 dark:border-gray-800">
                   <td className="px-3 py-2 font-medium">{r.role}</td>
                   <Cell v={r.fleet} /><Cell v={r.drivers} /><Cell v={r.trips} /><Cell v={r.fuel} /><Cell v={r.analytics} />
                 </tr>
