@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Driver, Expense, FuelLog, MaintenanceLog, Trip, User, Vehicle
+from .models import Driver, Expense, FuelLog, MaintenanceLog, Trip, User, Vehicle, VehicleDocument
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -15,6 +15,15 @@ class VehicleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
         fields = "__all__"
+
+
+class VehicleDocumentSerializer(serializers.ModelSerializer):
+    vehicle_reg = serializers.CharField(source="vehicle.reg_no", read_only=True)
+
+    class Meta:
+        model = VehicleDocument
+        fields = "__all__"
+        read_only_fields = ["uploaded_at"]
 
 
 class DriverSerializer(serializers.ModelSerializer):

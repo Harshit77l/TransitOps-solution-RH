@@ -5,6 +5,7 @@ from . import views
 
 router = DefaultRouter()
 router.register("vehicles", views.VehicleViewSet, basename="vehicle")
+router.register("vehicle-documents", views.VehicleDocumentViewSet, basename="vehicledocument")
 router.register("drivers", views.DriverViewSet, basename="driver")
 router.register("trips", views.TripViewSet, basename="trip")
 router.register("maintenance", views.MaintenanceViewSet, basename="maintenance")
@@ -17,5 +18,6 @@ urlpatterns = [
     path("dashboard/kpis/", views.DashboardView.as_view()),
     path("analytics/", views.AnalyticsView.as_view()),
     path("analytics/export/", views.analytics_export),
+    path("analytics/export_pdf/", views.analytics_export_pdf),
     path("", include(router.urls)),
 ]

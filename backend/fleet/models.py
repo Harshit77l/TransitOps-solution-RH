@@ -39,6 +39,31 @@ class Vehicle(models.Model):
         return f"{self.reg_no} ({self.name})"
 
 
+class VehicleDocument(models.Model):
+    """Uploaded compliance documents for a vehicle (RC, insurance, permit, ...).
+
+    `expiry` is optional; when set, documents feed the same expiring-reminder
+    surface as driver licenses.
+    """
+    class DocType(models.TextChoices):
+        RC = "RC", "Registration Certificate"
+        INSURANCE = "INSURANCE", "Insurance"
+        PERMIT = "PERMIT", "Permit"
+        FITNESS = "FITNESS", "Fitness Certificate"
+        PUC = "PUC", "Pollution Certificate"
+        OTHER = "OTHER", "Other"
+
+    vehicle = models.ForeignKey(Vehicle, on_delete=models.CASCADE, related_name="documents")
+    doc_type = models.CharField(max_length=16, choices=DocType.choices, default=DocType.OTHER)
+    title = models.CharField(max_length=120, blank=True)
+    file = models.FileField(upload_to="vehicle_docs/")
+    expiry = models.DateField(null=True, blank=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.vehicle.reg_no} · {self.doc_type}"
+
+
 class Driver(models.Model):
     class Status(models.TextChoices):
         AVAILABLE = "AVAILABLE", "Available"

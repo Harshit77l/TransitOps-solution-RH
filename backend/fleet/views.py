@@ -1,10 +1,12 @@
 import csv
+import io
 
 from django.db.models import Q, Sum
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status, viewsets
 from rest_framework.decorators import action, api_view, permission_classes
+from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -12,12 +14,13 @@ from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
 from . import services
-from .models import Driver, Expense, FuelLog, MaintenanceLog, Trip, Vehicle
+from .models import Driver, Expense, FuelLog, MaintenanceLog, Trip, Vehicle, VehicleDocument
 from .permissions import (
     DriverPermission,
     FinancePermission,
     MaintenancePermission,
     TripPermission,
+    VehicleDocumentPermission,
     VehiclePermission,
 )
 from .serializers import (
@@ -27,6 +30,7 @@ from .serializers import (
     MaintenanceLogSerializer,
     TripSerializer,
     UserSerializer,
+    VehicleDocumentSerializer,
     VehicleSerializer,
 )
 
@@ -70,6 +74,20 @@ class VehicleViewSet(viewsets.ModelViewSet):
         return qs
 
 
+# ---------- Vehicle Documents (document management bonus) ----------
+class VehicleDocumentViewSet(viewsets.ModelViewSet):
+    serializer_class = VehicleDocumentSerializer
+    permission_classes = [VehicleDocumentPermission]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get_queryset(self):
+        qs = VehicleDocument.objects.select_related("vehicle").order_by("-uploaded_at")
+        vehicle = self.request.query_params.get("vehicle")
+        if vehicle:
+            qs = qs.filter(vehicle_id=vehicle)
+        return qs
+
+
 # ---------- Drivers ----------
 class DriverViewSet(viewsets.ModelViewSet):
     serializer_class = DriverSerializer
@@ -86,6 +104,20 @@ class DriverViewSet(viewsets.ModelViewSet):
         if p.get("ordering"):
             qs = qs.order_by(p["ordering"])
         return qs
+
+    @action(detail=False, methods=["get"])
+    def expiring(self, request):
+        """Drivers with licenses expiring within ?days (default 30)."""
+        try:
+            days = int(request.query_params.get("days", 30))
+        except (TypeError, ValueError):
+            days = 30
+        drivers = services.get_expiring_licenses(days)
+        return Response({
+            "days": days,
+            "count": drivers.count(),
+            "drivers": DriverSerializer(drivers, many=True).data,
+        })
 
 
 # ---------- Trips + transitions ----------
@@ -247,4 +279,76 @@ def analytics_export(request):
     w.writerow(["Vehicle", "Total Cost"])
     for row in data["topCostly"]:
         w.writerow([row["vehicle"], row["cost"]])
+    return resp
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def analytics_export_pdf(request):
+    """PDF export bonus (ReportLab — no system libs, keeps the hackathon light)."""
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.units import cm
+    from reportlab.platypus import (
+        SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle,
+    )
+
+    data = _analytics_payload()
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf, pagesize=A4,
+        leftMargin=2 * cm, rightMargin=2 * cm, topMargin=2 * cm, bottomMargin=2 * cm,
+    )
+    styles = getSampleStyleSheet()
+    brand = colors.HexColor("#e0951a")
+    elems = [
+        Paragraph("TransitOps — Reports & Analytics", styles["Title"]),
+        Paragraph(
+            timezone.now().strftime("Generated %Y-%m-%d %H:%M UTC"),
+            styles["Normal"],
+        ),
+        Spacer(1, 0.6 * cm),
+    ]
+
+    kpi_rows = [
+        ["Metric", "Value"],
+        ["Fuel Efficiency (km/l)", str(data["fuelEfficiency"])],
+        ["Fleet Utilization (%)", str(data["fleetUtilization"])],
+        ["Operational Cost", f"{data['operationalCost']:,}"],
+        ["Vehicle ROI (%)", str(data["vehicleRoi"])],
+    ]
+    kpi_table = Table(kpi_rows, colWidths=[8 * cm, 8 * cm])
+    kpi_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), brand),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#faf6ef")]),
+        ("PADDING", (0, 0), (-1, -1), 6),
+    ]))
+    elems += [kpi_table, Spacer(1, 0.8 * cm)]
+
+    elems.append(Paragraph("Top Costliest Vehicles", styles["Heading2"]))
+    elems.append(Paragraph(
+        "ROI = (Revenue - (Maintenance + Fuel)) / Acquisition Cost", styles["Italic"]
+    ))
+    elems.append(Spacer(1, 0.3 * cm))
+    cost_rows = [["Vehicle", "Total Cost"]] + [
+        [row["vehicle"], f"{row['cost']:,}"] for row in data["topCostly"]
+    ] or [["Vehicle", "Total Cost"], ["—", "—"]]
+    cost_table = Table(cost_rows, colWidths=[8 * cm, 8 * cm])
+    cost_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#333333")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dddddd")),
+        ("PADDING", (0, 0), (-1, -1), 6),
+    ]))
+    elems.append(cost_table)
+
+    doc.build(elems)
+    buf.seek(0)
+    resp = HttpResponse(buf.getvalue(), content_type="application/pdf")
+    resp["Content-Disposition"] = 'attachment; filename="transitops_analytics.pdf"'
     return resp

@@ -8,7 +8,25 @@ from django.db import transaction
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
 
+from datetime import timedelta
+
 from .models import Driver, MaintenanceLog, Trip, Vehicle
+
+
+def get_expiring_licenses(days: int = 30):
+    """Drivers whose license expires within `days` (including already expired).
+
+    Reuses the same expiry notion as Rule #3 (dispatch eligibility). Returned
+    ordered by soonest-expiring first so the UI banner and the email reminder
+    command share one source of truth.
+    """
+    today = timezone.now().date()
+    horizon = today + timedelta(days=days)
+    return (
+        Driver.objects.filter(license_expiry__lte=horizon)
+        .exclude(status=Driver.Status.SUSPENDED)
+        .order_by("license_expiry")
+    )
 
 
 def get_dispatch_options():

@@ -20,6 +20,10 @@ class VehiclePermission(RolePermission):
     allowed = {"FLEET_MANAGER"}
 
 
+class VehicleDocumentPermission(RolePermission):
+    allowed = {"FLEET_MANAGER"}
+
+
 class DriverPermission(RolePermission):
     allowed = {"FLEET_MANAGER", "SAFETY_OFFICER"}
 
