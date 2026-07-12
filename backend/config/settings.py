@@ -71,6 +71,23 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+
+# Media (uploaded vehicle documents)
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Email — console backend for dev/demo (license-expiry reminders print to terminal).
+# Swap EMAIL_BACKEND to SMTP in production via env.
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "alerts@transitops.in")
+LICENSE_REMINDER_RECIPIENTS = [
+    e.strip()
+    for e in os.getenv("LICENSE_REMINDER_RECIPIENTS", "safety@transitops.in").split(",")
+    if e.strip()
+]
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
