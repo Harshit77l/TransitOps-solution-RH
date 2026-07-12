@@ -1,126 +1,188 @@
-# TransitOps — Smart Transport Operations Platform
+# TransitOps
 
-A fleet operations platform: vehicle registry, driver management, trip dispatching,
-maintenance, fuel/expense tracking, and analytics — with all business rules enforced
-server-side and role-based access control.
+TransitOps is a smart transport operations platform for managing vehicles, drivers, trips, maintenance, fuel, expenses, and analytics from a single workflow. The project pairs a Django REST backend with a Next.js frontend to provide a role-aware fleet management experience.
 
-- **Backend:** Django + Django REST Framework + SQLite + JWT (simplejwt)
-- **Frontend:** Next.js (App Router) + Tailwind + TanStack Query + Axios + Recharts
+## Highlights
 
----
+- Role-based access for fleet, dispatch, safety, and finance workflows
+- Trip lifecycle support from draft to dispatch, completion, and cancellation
+- Fleet, driver, maintenance, and finance management screens
+- Analytics dashboard with operational KPIs and exportable reporting
+- Clean, responsive frontend built with Next.js and Tailwind CSS
 
-## Prerequisites
+## Tech Stack
 
-- Python 3.10+
-- Node.js 18+
+- Backend: Django, Django REST Framework, SimpleJWT, SQLite
+- Frontend: Next.js App Router, React, Tailwind CSS, Axios, TanStack Query, Recharts
+- Tooling: Python, Node.js, npm
 
----
+## Architecture
 
-## 1. Run the backend
+```mermaid
+flowchart LR
+  U[User] --> F[Next.js Frontend]
+  F --> A[Django REST API]
+  A --> DB[(SQLite Database)]
+  A --> B[Business Rules & RBAC]
+  B --> A
+  F --> C[Charts / Tables / Forms]
+  A --> C
+```
+
+## Core Workflows
+
+```mermaid
+sequenceDiagram
+  participant U as User
+  participant F as Frontend
+  participant A as API
+  participant D as Database
+
+  U->>F: Sign in
+  F->>A: POST /auth/login/
+  A->>D: Validate credentials
+  D-->>A: User + role
+  A-->>F: JWT + profile
+  U->>F: Create / dispatch trip
+  F->>A: Submit action
+  A->>D: Enforce rules and persist changes
+  A-->>F: Updated record
+```
+
+## Repository Layout
+
+```text
+TransitOps-solution-RH/
+├── backend/
+│   ├── manage.py
+│   ├── requirements.txt
+│   ├── config/
+│   └── fleet/
+└── frontend/
+    ├── app/
+    ├── components/
+    └── lib/
+```
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.10 or newer
+- Node.js 18 or newer
+
+### Backend Setup
 
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate           # Windows: venv\Scripts\activate
+venv\Scripts\activate
 pip install -r requirements.txt
-cp .env.example .env
 python manage.py migrate
-python manage.py seed              # loads demo users, vehicles, drivers
-python manage.py runserver         # http://localhost:8000
+python manage.py seed
+python manage.py runserver
 ```
 
-The API is served under `http://localhost:8000/api/`.
+The API runs at `http://localhost:8000/api/`.
 
-## 2. Run the frontend (new terminal)
+### Frontend Setup
 
 ```bash
 cd frontend
 npm install
-cp .env.local.example .env.local
-npm run dev                        # http://localhost:3000
+npm run dev
 ```
 
-Open **http://localhost:3000** and log in.
+The frontend runs at `http://localhost:3000`.
 
----
+## Environment Variables
 
-## Demo accounts
+Backend and frontend may use environment files depending on your local setup.
 
-All use password **`password123`**:
+- Backend: `.env`
+- Frontend: `.env.local`
 
-| Role | Email |
-|------|-------|
-| Fleet Manager | manager@transitops.in |
-| Dispatcher | dispatch@transitops.in |
-| Safety Officer | safety@transitops.in |
-| Financial Analyst | finance@transitops.in |
+If your workspace already includes sample environment files, copy them before starting the app.
 
-The login screen has one-click buttons to fill each account.
+## Features
 
----
+### Operations
 
-## Demo walkthrough (proves every business rule)
+- Vehicle registry with status-aware management
+- Driver management with assignment constraints
+- Trip dispatch, completion, and cancellation flow
+- Maintenance tracking with vehicle state transitions
+- Fuel and expense logging for operational visibility
 
-1. Log in as **Dispatcher**.
-2. **Fleet** → note Van-05 (500 kg, Available); the Retired and In-Shop vehicles.
-3. **Drivers** → Alex is Available; John is Suspended, Priya On Trip, Suresh Off Duty.
-4. **Trips** → Create Trip. The vehicle/driver dropdowns only list eligible ones
-   (suspended/expired/on-trip are hidden). Pick Van-05 + Alex, cargo 450 kg → within
-   capacity. Bump cargo above 500 kg → red **"capacity exceeded → dispatch blocked"**.
-5. Set cargo back and **Dispatch** → Van-05 and Alex both flip to On Trip; Dashboard
-   Active Trips ticks up.
-6. On the Live Board, **Complete** the trip (enter final odometer + fuel) → both return
-   to Available; a fuel log is created.
-7. As **Fleet Manager**, go to **Maintenance** → log a service on Van-05 → it becomes
-   In Shop and disappears from the Trips dispatch pool. **Close** it → back to Available.
-8. **Analytics** → fuel efficiency, utilization, operational cost, ROI, costliest-vehicle
-   chart. **Export CSV**.
+### Analytics
 
----
+- Fleet utilization metrics
+- Cost and fuel efficiency indicators
+- Costliest vehicle breakdown
+- CSV export for reporting
 
-## Business rules (all enforced server-side in `backend/fleet/services.py`)
+### Access Control
 
-1. Vehicle registration number is unique.
-2. Retired / In-Shop vehicles never appear in dispatch selection.
-3. Expired-license or Suspended drivers cannot be assigned.
-4. A vehicle/driver already On Trip cannot be assigned again.
+- Fleet Manager: vehicles and maintenance
+- Dispatcher: trips
+- Safety Officer: drivers
+- Financial Analyst: fuel and expenses
+
+## Business Rules
+
+The backend enforces the following rules server-side:
+
+1. Vehicle registration numbers are unique.
+2. Retired and in-shop vehicles are excluded from dispatch selection.
+3. Expired-license and suspended drivers cannot be assigned.
+4. Vehicles and drivers already on trip cannot be reassigned.
 5. Cargo weight cannot exceed vehicle capacity.
-6. Dispatching sets both vehicle and driver to On Trip.
-7. Completing sets both back to Available (records odometer + fuel).
-8. Cancelling a dispatched trip restores both to Available.
-9. Opening a maintenance record sets the vehicle to In Shop.
-10. Closing maintenance restores the vehicle to Available (unless Retired).
+6. Dispatching marks both vehicle and driver as on trip.
+7. Completing a trip restores both to available.
+8. Cancelling a trip restores both to available.
+9. Opening maintenance marks the vehicle as in shop.
+10. Closing maintenance restores the vehicle to available unless retired.
 
-RBAC is enforced by DRF permission classes in `backend/fleet/permissions.py`:
-Fleet Manager → vehicles + maintenance; Dispatcher → trips; Safety Officer → drivers;
-Financial Analyst → fuel + expenses. Everyone authenticated can read.
+## API Overview
 
----
+| Endpoint | Purpose |
+| --- | --- |
+| `/api/auth/login/` | Authenticate and issue JWT tokens |
+| `/api/auth/me/` | Return the authenticated user profile |
+| `/api/dashboard/kpis/` | Dashboard metrics |
+| `/api/analytics/` | Analytics summary |
+| `/api/analytics/export/` | CSV export |
+| `/api/vehicles/` | Vehicle CRUD |
+| `/api/drivers/` | Driver CRUD |
+| `/api/trips/` | Trip CRUD and lifecycle actions |
+| `/api/maintenance/` | Maintenance logs |
+| `/api/fuel/` | Fuel logs |
+| `/api/expenses/` | Expense logs |
 
-## Bonus features included
+## Screens
 
-- **Charts & visual analytics** (Recharts on the Analytics screen)
-- **Search, filters & sorting** (Vehicles and Drivers tables, wired to API query params)
-- **CSV export** (Analytics screen → Export CSV)
+- Login and access request flow
+- Dashboard
+- Vehicle registry
+- Driver management
+- Trip dispatcher
+- Maintenance
+- Fuel and expenses
+- Analytics
+- Settings
 
----
+## Notes
 
-## Project structure
+- The app uses seeded data for local development.
+- The login screen is intentionally minimal and does not expose demo account details in the UI.
+- The frontend includes a separate access-request page for presentation purposes.
 
-```
-transitops/
-├── backend/
-│   ├── config/            # Django project (settings, urls)
-│   └── fleet/
-│       ├── models.py      # 8 entities
-│       ├── services.py    # business-rule engine (all 10 rules)
-│       ├── permissions.py # RBAC
-│       ├── serializers.py
-│       ├── views.py       # ViewSets + dispatch/complete/cancel/close actions
-│       └── management/commands/seed.py
-└── frontend/
-    ├── app/               # 9 screens (login, dashboard, vehicles, drivers,
-    │                      #   trips, maintenance, fuel, analytics, settings)
-    ├── components/        # Layout, StatusBadge, ui helpers
-    └── lib/               # api client, auth context
-```
+## Development Tips
+
+- Run the backend and frontend in separate terminals.
+- If you change backend models or serializers, run migrations before restarting the API.
+- If frontend changes do not appear, restart the Next.js dev server.
+
+## License
+
+This project was prepared for a hackathon-style transport operations demo.
